@@ -1,21 +1,17 @@
 const express = require('express');
 
 const router = express.Router();
+const placeControllers = require('../Controllers/places-controllers');
 
-const HttpError  = require('../models/http-error');
 
+router.get('/:pid',placeControllers.getPlacesById);
 
-router.get('/:pid',);
+router.get('/user/:uid',placeControllers.getPlacesByUserId);
 
-router.get('/user/:uid',(req,res,next)=>{
-    const userId = req.params.uid;
-    const places = DUMMY_PLACES.find(p=> p.creator===userId);
-     
-    if(!places){
-        return next( new HttpError('Could not find a user. ', 404))
-    }
+router.post('/',placeControllers.createPlace);
 
-    res.json({places});
-});
+router.patch('/:pid',placeControllers.updatePlace);
+
+router.delete('/:pid',placeControllers.deletePlace);
 
 module.exports = router;
