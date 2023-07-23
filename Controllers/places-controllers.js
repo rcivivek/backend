@@ -3,6 +3,7 @@ const HttpError  = require('../models/http-error');
 const { validationResult}  = require('express-validator');
 const getCoordsForAddress = require('../util/location');
 const Place = require('../models/place');
+const place = require('../models/place');
 
 
 const DUMMY_PLACES = [{
@@ -90,24 +91,46 @@ const createPlace = async (req, res,next)=>{
   res.status(201).json({place: createdPlace});
 };
 
-const updatePlace = (req, res, next) => {
+const updatePlace = async(req, res, next) => {
+    // const errors =validationResult(req);
+    // if(!errors.isEmpty()){
+    //     throw new HttpError('Invalid inputs passed, please check your data.',422);
+    // }
     const placeId =req.params.pid;
-    const { title, description,coordinates,address,creator} = req.body;
-    const createdPlace = {
-        // id :uuid(),
-        title,
-        description,
-        location:coordinates,
-        address,
-        creator
-    };
-    res.status(202).json({place: createdPlace});
+    const { title, description} = req.body;
+    let place;
+    try{
+        place = await Place.findById(placeId);
+    }catch(err){
+        const error = new HttpError('Something wen wrong, coould not update place',500);
+        return next(error);
+    }
+    place.title = title;
+    place.description = description;
+    try{
+       await place.save();     
+
+    }catch(err){
+        return next(new HttpError('Could not update place',500));
+    }
+
+    res.status(202).json({place: place.toObject({getters: true})});
 };
 
-const deletePlace = (req, res, next)=>{
+const deletePlace = async (req, res, next)=>{
    const placeId = req.params.pid;
-   const place = DUMMY_PLACES.find(p=>p.id===placeId);
-   res.status(203).json({place});
+   let place;
+   try{
+      place = await Place.findById(placeId);
+   }catch(err){
+    return next(new HttpError('Could not delete place',500));
+   }
+   try{
+      await place.deleteOne();
+   }catch(err){
+    return next(new HttpError('Something went Wrong', 404));
+   }
+   res.status(203).json({message:"Deleted place."});
 };
 
 exports.getPlacesById = getPlacesById;
