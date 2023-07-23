@@ -2,6 +2,7 @@
 const HttpError  = require('../models/http-error');
 const { validationResult}  = require('express-validator');
 const getCoordsForAddress = require('../util/location');
+const Place = require('../models/place');
 
 
 const DUMMY_PLACES = [{
@@ -17,26 +18,42 @@ const DUMMY_PLACES = [{
 
 }];
 
-const getPlacesById = ((req,res,next) =>{
+const getPlacesById = ( async(req,res,next) =>{
     const placeId = req.params.pid;
-    const place = DUMMY_PLACES.find(p=>{
-       return p.id === placeId
-    });
-    if(!place){
-      throw new HttpError("Could not find a place.", 404)
+    let place;
+    try{
+        place = await Place.findById(placeId);        
+    }catch(err){
+        const error = new HttpError(
+            'Something went wrong, could nout find a place',
+            500
+        );
+        return next(error);
+
     }
-    res.json({place});
+    if(!place){
+      const error =new HttpError("Could not find a place.", 404)
+      return next(error );
+    }
+    res.json({place:place.toObject({getters: true}) });
 });
 
-const getPlacesByUserId = (req,res,next)=>{
+const getPlacesByUserId = async (req,res,next)=>{
     const userId = req.params.uid;
-    const places = DUMMY_PLACES.find(p=> p.creator===userId);
-     
+    let places;
+    try{
+        places =  await Place.find({creator: userId});        
+
+    }catch(err){
+       const error = new HttpError('Something went wrong.', 500);
+       return next(error);
+    }
+
     if(!places){
         return next( new HttpError('Could not find a user. ', 404))
     }
 
-    res.json({places});
+    res.json({places:places.toObject({getters: true}) });
 };
 
 const createPlace = async (req, res,next)=>{
@@ -46,25 +63,29 @@ const createPlace = async (req, res,next)=>{
         console.log(errors);
       return  next(new HttpError('Invalid inputs passed, please check your data.',422));
     }
-
-    const { title, description,coordinates,address,creator} = req.body;
-    // let coordinates;
-    // try{
-    //     coordinates = await getCoordsForAddress(address);
-    // }catch(error){
-    //     return next(error);
-    // }
+    const coordinates = {
+        lat: 40.23245,
+        lng: -34.34455
+    };
+    const { title, description,address,creator} = req.body;
     
-    const createdPlace = {
-        // id :uuid(),
+    const createdPlace = new Place({
         title,
         description,
-        location:coordinates,
         address,
+        location:coordinates,
+        image:'https://en.wikipedia.org/wiki/Taj_Mahal#/media/File:Taj_Mahal-10_(cropped).jpg',
         creator
-    };
+    });
+    try{
+        await createdPlace.save();
+
+    }catch(err){
+        const error = new HttpError('createing place failed, please try agine',500);
+        return next(error);
+    }
     
-  DUMMY_PLACES.push(createdPlace); //unshift(createdPlace)
+//   DUMMY_PLACES.push(createdPlace); //unshift(createdPlace)
 
   res.status(201).json({place: createdPlace});
 };
