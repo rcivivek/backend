@@ -49,11 +49,11 @@ const getPlacesByUserId = async (req,res,next)=>{
        return next(error);
     }
 
-    if(!places){
+    if(!places|| places.length==0){
         return next( new HttpError('Could not find a user. ', 404))
     }
 
-    res.json({places:places.toObject({getters: true}) });
+    res.json({places:places.map(place=> place.toObject({getters:true}))});
 };
 
 const createPlace = async (req, res,next)=>{
