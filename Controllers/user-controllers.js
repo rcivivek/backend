@@ -2,13 +2,7 @@ const HttpError = require('../models/http-error');
 const{ validationResult}  = require('express-validator');
 const User = require('../models/user');
 
-const DUMMY_USERS =[{
-    first_name: "John",
-    last_name: "Doe",
-    username : "JohnDoe123",
-    email: "johndeo12@gmail.com",
-    password: "Nopassword",
-}];
+
 
 const signup = async (req, res, next) => {
     const errors = validationResult(req);
@@ -17,7 +11,7 @@ const signup = async (req, res, next) => {
         new HttpError('Invalid inputs passed, please check your data.', 422)
       );
     }
-    const { name, email, password, places} = req.body;
+    const { name, email, password} = req.body;
   
     let existingUser
     try {
@@ -43,7 +37,7 @@ const signup = async (req, res, next) => {
       email,
       image: 'https://live.staticflickr.com/7631/26849088292_36fc52ee90_b.jpg',
       password,
-      places
+      places:[]
     });
   
     try{
@@ -58,18 +52,54 @@ const signup = async (req, res, next) => {
   res.status(201).json({user: createdUser});
   };
 
-const login = (req,res, next) =>{
-    const {email, password} = req.body;
-    const validUser = DUMMY_USERS.find(p=> p.email ===email&& p.password ===password);
-    if(!validUser){
-        throw new HttpError("Could not find any user", 404);
+  const login = async (req, res, next) => {
+    const { email, password } = req.body;
+  
+    let existingUser;
+  
+    try {
+      existingUser = await User.findOne({ email: email });
+    } catch (err) {
+      const error = new HttpError(
+        'Loggin in failed, please try again later.',
+        500
+      );
+      return next(error);
     }
-    res.status(200).json({message:"You are logged in now.",validUser});
+  
+    if (!existingUser || existingUser.password !== password) {
+      const error = new HttpError(
+        'Invalid credentials, could not log you in.',
+        401
+      );
+      return next(error);
+    }
+  
+    res.json({ message: 'Logged in!',user: existingUser.toObject({getters:true})});
+  };
 
-};
+// const login = async (req,res, next) =>{
+//     const {email, password} = req.body;
+//     let validUser;
+//     try{
+//         validUser = await User.findOne({ email: email});
+//     }catch(err){
+//         return next(new HttpError("login failed",500));
+//     }
+//     if(!validUser || validUser.password != password){
+//         return next(new HttpError("Either email or password is incorrect.", 404));
+//     }
+//       res.status(200).json({message:"You are logged in "});  
+// };
 
-const  getAllUsers = (req,res, next)=>{
-    res.status(200).json({DUMMY_USERS});
+const  getAllUsers = async (req,res, next)=>{
+    let users;
+    try{
+        users = await User.find({}, '-password');
+    }catch(err){
+        return next(new HttpError("Could not get users", 500));
+    }    
+    res.status(200).json({users: users.map(user=>user.toObject({getters:true}))});
 };
 
 
