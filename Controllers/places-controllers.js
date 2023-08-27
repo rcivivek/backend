@@ -66,7 +66,7 @@ const createPlace = async (req, res,next)=>{
         description,
         address,
         location: coordinates,
-        image: 'http://localhost:5000/'+ req.file.path,       
+        image:  req.file.path,       
         creator: req.userData.userId
       });
     
