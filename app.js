@@ -50,7 +50,7 @@ app.use((error, req,res,next) =>{
    res.json({message: error.message || 'Unknown Error'})
 });
 
-mongoose.connect('mongodb+srv://Mongo:123@cluster0.6owdhvz.mongodb.net/places?retryWrites=true&w=majority')
+mongoose.connect(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.6owdhvz.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`)
         .then(()=>{
             app.listen(5000);
         })
